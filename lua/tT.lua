@@ -12,17 +12,20 @@ tT.config = {
 }
 
 tT.map_expr = function(direction)
-	local char = vim.fn.getcharstr()
+	tT.direction = direction
+
+	local char
+	char = vim.fn.getcharstr()
 	if char == "\r" then char = [[\n]] end
-	return string.format([==[<cmd>lua tT.callback(%s, [=[%s]=])<cr>]==], direction, char)
-	-- make it dot-repeatable
-	-- i want to call this ultimate hack
+	tT.char = char
+
+	return [[<cmd>lua tT.callback()<cr>]]
 end
 
-tT.callback = function(direction, char)
-	local pattern = [[\V\C]] .. char
+tT.callback = function()
+	local pattern = [[\V\C]] .. tT.char
 
-	if direction then
+	if tT.direction then
 		for i = 1, vim.v.count1 do
 			vim.fn.search(pattern, "")
 		end
@@ -34,7 +37,7 @@ tT.callback = function(direction, char)
 
 	vim.fn.setreg("/", pattern)
 
-	if direction then
+	if tT.direction then
 		vim.v.searchforward = 1
 	else
 		vim.v.searchforward = 0
