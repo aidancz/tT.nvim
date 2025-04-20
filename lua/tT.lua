@@ -1,47 +1,67 @@
-tT = {}
+local M = {}
 
-tT.setup = function(config)
-	tT.config = vim.tbl_deep_extend("force", tT.config, config or {})
-	vim.keymap.set({"n", "x", "o"}, tT.config.t, function() return tT.map_expr(true) end, {expr = true})
-	vim.keymap.set({"n", "x", "o"}, tT.config.T, function() return tT.map_expr(false) end, {expr = true})
+M.search_char = function(direction, char, count)
+	local pattern = [[\V\C]] .. char
+	for _ = 1, count do
+		if direction then
+			vim.fn.search(pattern, "")
+			vim.fn.setreg("/", pattern)
+			vim.v.searchforward = 1
+		else
+			vim.fn.search(pattern, "b")
+			vim.fn.setreg("/", pattern)
+			vim.v.searchforward = 0
+		end
+	end
 end
 
-tT.config = {
-	t = "t",
-	T = "T",
+M.cache = {
+	direction = nil,
+	char = nil,
+	count = nil,
 }
 
-tT.map_expr = function(direction)
-	tT.direction = direction
+M.update_cache = function(direction)
+	M.cache.direction = direction
 
 	local char
 	char = vim.fn.getcharstr()
 	if char == "\r" then char = [[\n]] end
-	tT.char = char
+	M.cache.char = char
 
-	return [[<cmd>lua tT.callback()<cr>]]
+	local count
+	count = vim.v.count1
+	M.cache.count = count
 end
 
-tT.callback = function()
-	local pattern = [[\V\C]] .. tT.char
-
-	if tT.direction then
-		for i = 1, vim.v.count1 do
-			vim.fn.search(pattern, "")
-		end
-	else
-		for i = 1, vim.v.count1 do
-			vim.fn.search(pattern, "b")
-		end
-	end
-
-	vim.fn.setreg("/", pattern)
-
-	if tT.direction then
-		vim.v.searchforward = 1
-	else
-		vim.v.searchforward = 0
-	end
+M.search_char_cache = function()
+	M.search_char(
+		M.cache.direction,
+		M.cache.char,
+		vim.v.count == 0 and M.cache.count or vim.v.count
+	)
 end
 
-return tT
+M.search_char_new = function(direction)
+	M.update_cache(direction)
+	M.search_char_cache()
+end
+
+-- we want search_char_new:   `f<char>`
+-- we want search_char_cache: `.` (dot-repeat)
+-- how?
+-- use expr mapping
+
+M.search_char_forward = function()
+	M.update_cache(true)
+	return
+	[[<cmd>lua require("tT").search_char_cache()<cr>]]
+end
+
+M.search_char_backward = function()
+	M.update_cache(false)
+	return
+	[[<cmd>lua require("tT").search_char_cache()<cr>]]
+end
+
+return M
