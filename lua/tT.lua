@@ -1,9 +1,21 @@
 local M = {}
 
-M.search_char = function(direction, char, count)
-	local pattern = [[\V\C]] .. char
+M.search_literal_string = function(direction, literal_string, count)
+	direction = direction or "next"
+	if not literal_string then
+		vim.ui.input(
+			nil,
+			function(input)
+				literal_string = input
+			end
+		)
+		if not literal_string then return end
+	end
+	count = count or vim.v.count1
+
+	local pattern = [[\V\C]] .. literal_string
 	for _ = 1, count do
-		if direction then
+		if direction == "next" then
 			vim.fn.search(pattern, "")
 			vim.fn.setreg("/", pattern)
 			vim.v.searchforward = 1
@@ -15,53 +27,42 @@ M.search_char = function(direction, char, count)
 	end
 end
 
+-- the following is for single-char dot-repeatable search
+
 M.cache = {
 	direction = nil,
-	char = nil,
+	literal_string = nil,
 	count = nil,
 }
 
 M.update_cache = function(direction)
 	M.cache.direction = direction
-
-	local char
-	char = vim.fn.getcharstr()
-	if char == "\r" then char = [[\n]] end
-	M.cache.char = char
-
-	local count
-	count = vim.v.count1
-	M.cache.count = count
+	M.cache.literal_string = vim.fn.getcharstr():gsub("\r", "\\n")
+	M.cache.count = vim.v.count1
 end
 
-M.search_char_cache = function()
-	M.search_char(
+M.apply_cache = function()
+	M.search_literal_string(
 		M.cache.direction,
-		M.cache.char,
+		M.cache.literal_string,
 		vim.v.count == 0 and M.cache.count or vim.v.count
 	)
 end
 
-M.search_char_new = function(direction)
+M.new = function(direction)
 	M.update_cache(direction)
-	M.search_char_cache()
+	M.apply_cache()
 end
 
--- we want search_char_new:   `f<char>`
--- we want search_char_cache: `.` (dot-repeat)
+-- we want M.new:         `t<char>`
+-- we want M.apply_cache: `.`
 -- how?
 -- use expr mapping
 
-M.search_char_forward = function()
-	M.update_cache(true)
+M.expr = function(direction)
+	M.update_cache(direction)
 	return
-	[[<cmd>lua require("tT").search_char_cache()<cr>]]
-end
-
-M.search_char_backward = function()
-	M.update_cache(false)
-	return
-	[[<cmd>lua require("tT").search_char_cache()<cr>]]
+	[[<cmd>lua require("tT").apply_cache()<cr>]]
 end
 
 return M
