@@ -59,8 +59,8 @@ end
 -- how?
 -- use expr mapping
 
-M.expr = function(direction)
-	M.update_cache(direction)
+M.expr = function(opts)
+	M.update_cache(opts.direction)
 	return
 	[[<cmd>lua require("tT").apply_cache()<cr>]]
 end

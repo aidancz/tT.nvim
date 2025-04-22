@@ -7,8 +7,28 @@ searching for a single character without hitting enter should not assign six key
 if you:
 
 ```lua
-vim.keymap.set({"n", "x", "o"}, "t", function() return require("tT").expr("next") end, {expr = true})
-vim.keymap.set({"n", "x", "o"}, "T", function() return require("tT").expr("prev") end, {expr = true})
+vim.keymap.set(
+	{"n", "x", "o"},
+	"t",
+	function()
+		return
+		require("tT").expr({
+			direction = "next",
+		})
+	end,
+	{expr = true}
+)
+vim.keymap.set(
+	{"n", "x", "o"},
+	"T",
+	function()
+		return
+		require("tT").expr({
+			direction = "prev",
+		})
+	end,
+	{expr = true}
+)
 ```
 
 then:
