@@ -3,7 +3,8 @@ local M = {}
 ---@param count number
 ---@param direction "prev"|"next"
 ---@param literal_string string
-M.search_literal_string = function(count, direction, literal_string)
+---@param search_history boolean
+M.search_literal_string = function(count, direction, literal_string, search_history)
 	count = count or vim.v.count1
 	direction = direction or "next"
 	if not literal_string then
@@ -15,18 +16,25 @@ M.search_literal_string = function(count, direction, literal_string)
 		)
 		if not literal_string then return end
 	end
+	if search_history == nil then
+		search_history = true
+	end
 	-- give them default value is convenient for manual call, it is okay to remove above lines
 
 	local pattern = [[\V\C]] .. literal_string
 	for _ = 1, count do
 		if direction == "next" then
 			vim.fn.search(pattern, "")
-			vim.fn.setreg("/", pattern)
-			vim.v.searchforward = 1
+			if search_history then
+				vim.fn.setreg("/", pattern)
+				vim.v.searchforward = 1
+			end
 		else
 			vim.fn.search(pattern, "b")
-			vim.fn.setreg("/", pattern)
-			vim.v.searchforward = 0
+			if search_history then
+				vim.fn.setreg("/", pattern)
+				vim.v.searchforward = 0
+			end
 		end
 	end
 end
@@ -34,7 +42,7 @@ end
 -- # the following is for single-char dot-repeatable search
 
 M.search_literal_string_opts = function(opts)
-	M.search_literal_string(opts.count, opts.direction, opts.literal_string)
+	M.search_literal_string(opts.count, opts.direction, opts.literal_string, opts.search_history)
 end
 
 M.cache_opts = nil
@@ -50,6 +58,7 @@ end
 ---	count?: number,
 ---	direction: "prev"|"next",
 ---	literal_string?: string,
+---	search_history?: boolean,
 ---}
 M.expr = function(opts)
 	opts.count = opts.count or vim.v.count1
@@ -58,10 +67,12 @@ M.expr = function(opts)
 	local mode = vim.api.nvim_get_mode().mode
 	local is_operator_pending_mode = string.sub(mode, 1, 2) == "no"
 	if is_operator_pending_mode then
+		opts.search_history = false
 		M.cache_opts = opts
 		return
 		[[<cmd>lua require("tT").apply_cache_opts()<cr>]]
 	else
+		opts.search_history = true
 		vim.schedule(function()
 			M.search_literal_string_opts(opts)
 		end)
