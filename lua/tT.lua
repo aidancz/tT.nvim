@@ -45,13 +45,20 @@ M.search_literal_string_opts = function(opts)
 	M.search_literal_string(opts.count, opts.direction, opts.literal_string, opts.search_history)
 end
 
-M.cache_opts = nil
+M.cache_opts_operator_pending_mode = nil
+M.cache_opts_operator_pending_mode_not = nil
 
-M.apply_cache_opts = function()
-	if vim.v.count ~= 0 then
-		M.cache_opts.count = vim.v.count
+M.apply_cache_opts = function(is_operator_pending_mode)
+	local cache_opts
+	if is_operator_pending_mode then
+		cache_opts = M.cache_opts_operator_pending_mode
+	else
+		cache_opts = M.cache_opts_operator_pending_mode_not
 	end
-	M.search_literal_string_opts(M.cache_opts)
+	if vim.v.count ~= 0 then
+		cache_opts.count = vim.v.count
+	end
+	M.search_literal_string_opts(cache_opts)
 end
 
 ---@param opts {
@@ -68,14 +75,14 @@ M.expr = function(opts)
 	local is_operator_pending_mode = string.sub(mode, 1, 2) == "no"
 	if is_operator_pending_mode then
 		opts.search_history = false
-		M.cache_opts = opts
+		M.cache_opts_operator_pending_mode = opts
 		return
-		[[<cmd>lua require("tT").apply_cache_opts()<cr>]]
+		[[<cmd>lua require("tT").apply_cache_opts(true)<cr>]]
 	else
 		opts.search_history = true
-		vim.schedule(function()
-			M.search_literal_string_opts(opts)
-		end)
+		M.cache_opts_operator_pending_mode_not = opts
+		return
+		[[<cmd>lua require("tT").apply_cache_opts(false)<cr>]]
 	end
 end
 -- seperate M.expr?
