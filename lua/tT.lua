@@ -26,12 +26,14 @@ M.search_literal_string = function(count, direction, literal_string, search_hist
 		if direction == "next" then
 			vim.fn.search(pattern, "")
 			if search_history then
+				vim.fn.histadd("/", pattern)
 				vim.fn.setreg("/", pattern)
 				vim.v.searchforward = 1
 			end
 		else
 			vim.fn.search(pattern, "b")
 			if search_history then
+				vim.fn.histadd("/", pattern)
 				vim.fn.setreg("/", pattern)
 				vim.v.searchforward = 0
 			end
